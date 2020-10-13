@@ -1,0 +1,2 @@
+set(CONSTEXPR_TEST
+)

@@ -1,0 +1,9 @@
+.DS_Store
+/build
+/dark
+/.vscode
+/cmake/MyCompilerSetting.cmake
+/CMakeFiles
+/include/plot
+/include/linear_regression.hpp
+/src/test.csv

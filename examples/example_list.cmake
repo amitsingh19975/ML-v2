@@ -1,0 +1,3 @@
+set(
+    EXAMPLE_LIST
+)
