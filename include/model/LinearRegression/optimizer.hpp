@@ -4,7 +4,7 @@
 #include <armadillo>
 #include <functional>
 
-namespace amt::linear_regression{
+namespace amt::regression{
     
     struct default_opt{
 
@@ -99,7 +99,7 @@ namespace amt::linear_regression{
     template<typename T>
     inline static constexpr bool is_gradient_descent_v = std::is_same_v<T,gradient_descent>;
 
-} // namespace amt::linear_regression
+} // namespace amt::regression
 
 
 #endif

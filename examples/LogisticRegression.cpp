@@ -112,7 +112,7 @@ void plot(amt::series<> const& x, amt::series<> const& y, amt::series<> const& t
 }
 
 template<typename T>
-void plot_pred(amt::LogisticRegression<T> const&, amt::series<> const& x, amt::series<> const& y, amt::series<> const& target){
+void plot_pred(amt::classification::LogisticRegression<T> const&, amt::series<> const& x, amt::series<> const& y, amt::series<> const& target){
     namespace plt = matplotlibcpp;
     plt::title("Logistic Reg");
     plt::xlabel( norm_str(x.name()) );
@@ -205,7 +205,7 @@ int main(){
     auto x_test = amt::drop_rows(X,amt::out_place,0, training_sz);
     auto y_test = amt::drop_rows(Y,amt::out_place,0, training_sz);
     
-    auto model = amt::LogisticRegression<amt::OVR>(x_train,y_train);
+    auto model = amt::classification::LogisticRegression<amt::classification::OVR>(x_train,y_train);
     // amt::to<double>(Y,amt::in_place);
     // std::cout<<model.beta()<<'\n';
     // plot_pred(model,X[0],X[1],Y[0]);

@@ -6,43 +6,8 @@
 #include <numeric>
 #include <dataframe.hpp>
 #include <matplotlibcpp.h>
-#include <model/LinearRegression/linear_regression.hpp>
-#include <metrics/regression.hpp>
-
-void clean_data(amt::frame<>& f){
-    amt::name_list n = {
-        "id",
-        "date",
-        // "price",
-        "bedrooms",
-        "bathrooms",
-        // "sqft_living",
-        "sqft_lot",
-        "floors",
-        "waterfront",
-        "view",
-        "condition",
-        "grade",
-        "sqft_above",
-        "sqft_basement",
-        "yr_built",
-        "yr_renovated",
-        "zipcode",
-        "lat",
-        "long",
-        "sqft_living15",
-        "sqft_lot15" 
-    };
-    amt::drop_cols(f,amt::in_place, std::move(n));
-    amt::filter(f,amt::in_place,[](std::string_view val){
-        std::string temp(val);
-        std::transform(temp.begin(),temp.end(), temp.begin(), [](auto c){return std::tolower(c);});
-        if( temp.empty() ||  (temp == "nan") ) return true;
-        return false;
-    });
-
-    amt::to<double>(f,amt::in_place);
-}
+#include <model/NaiveBayes/gaussian.hpp>
+#include <metrics/classification.hpp>
 
 inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
@@ -77,113 +42,104 @@ std::string norm_str(std::string name){
     return name;
 }
 
-void plot(amt::frame<> const& x, amt::frame<> const& y){
-    namespace plt = matplotlibcpp;
-    std::vector<double> temp_x(x.rows()), temp_y(y.rows());
-
-    auto i = 0ul;
-    for(auto const& el : y[0]){
-        auto val = el.template as<double>();
-        temp_y[i++] = val;
-    }
-
-    i = 0ul;
-    for(auto const& el : x[0]){
-        auto val = el.template as<double>();
-        temp_x[i++] = val;
-    }
-    // plt::figure_size(1200, 780);
-    plt::title("House Pricing");
-    plt::scatter(temp_x,temp_y);
-    plt::xlabel( norm_str(x.name(0)) );
-    plt::ylabel( norm_str(y.name(0)) );
-    plt::show();
-}
-
-void plot_pred(double s, double c, amt::frame<> const& x, amt::frame<> const& y){
-    namespace plt = matplotlibcpp;
-    std::vector<double> temp_x(x.rows()), temp_y(y.rows());
-
-    auto i = 0ul;
-    auto max = 0.0;
-    for(auto const& el : y[0]){
-        auto val = el.template as<double>();
-        temp_y[i++] = val;
-    }
-
-    i = 0ul;
-    for(auto const& el : x[0]){
-        auto val = el.template as<double>();
-        temp_x[i++] = val;
-        max = std::max(val,max);
-    }
-
-    auto sz = x.rows();
-    auto chunks = max / static_cast<double>(x.rows());
-    std::vector<double> range_x(sz), temp_p(sz);
-    
-    for(auto k = 1u; k < sz; ++k) range_x[k] = range_x[k - 1u] + chunks;
-
-    for(auto j = 0ul; j < sz; ++j) 
-        temp_p[j] = c + s * static_cast<double>(range_x[j]);
-    // plt::figure_size(1200, 780);
-    plt::title("House Pricing");
-    plt::scatter(temp_x,temp_y);
-    plt::plot(range_x,temp_p,"r");
-    plt::xlabel( norm_str(x.name(0)) );
-    plt::ylabel( norm_str(y.name(0)) );
-    plt::show();
-}
-
-int main(int, char **) {
-
-    auto temp = amt::read_csv("/Users/amit/Desktop/code/ML/ML-v2/dataset/house_pricing.csv", true);
-    amt::to<float>(temp,amt::in_place);
-    clean_data(temp);
-    
-    auto i = 0ul;
-    auto y = amt::drop_cols(temp,amt::out_place,[&i](auto const&){
-        if(i++ > 0) return true;
-        return false;
-    });
-    auto x = amt::drop_cols(temp,amt::out_place,amt::index_list{0});
-
-    auto split_ratio = 0.25;
-    auto rsz = y.rows();
-    auto training_sz = static_cast<std::size_t>(split_ratio * static_cast<double>(rsz));
-    // auto testing_sz = rsz - training_sz;
-
-    for(auto& s : x){
-        double ma = amt::max(s);
-        double mi = amt::min(s);
-        double de = ma - mi;
-        amt::transform(s,amt::in_place,[&de,&mi]<typename T>(T& val){
-            if constexpr( std::is_convertible_v<T,double> )
-                return (val - static_cast<T>(mi)) / static_cast<T>(de);
-            else
-                return val;
+auto map_col(amt::Series auto& s){
+    std::unordered_map<std::string,double> ret;
+    double i = 0.0;
+    for(auto& el : s){
+        amt::visit(el, [&ret,&i,&el](std::string& s){
+            if(auto it = ret.find(s); it != ret.end()){
+                el = it->second;
+            }else{
+                ret.insert({s, i});
+                el = i++;
+            }
         });
     }
-    for(auto& s : y){
-        auto ma = amt::max(s);
-        auto mi = amt::min(s);
-        auto de = ma - mi;
-        amt::transform(s,amt::in_place,[&de,&mi]<typename T>(T& val){
-            if constexpr( std::is_convertible_v<T,double> )
-                return (val - static_cast<T>(mi)) / static_cast<T>(de);
-            else
-                return val;
+    return ret;
+}
+
+auto map_to_vec(std::unordered_map<std::string,double> const& m){
+    std::vector<std::string> ret(m.size());
+    for(auto const& [key,val] : m){
+        std::size_t i = static_cast<std::size_t>(val);
+        ret[i] = key;
+    }
+    return ret;
+}
+
+auto preprocess(amt::Frame auto& f){
+
+    // amt::index_list ids;
+    // auto& s = f["Species"];
+    // for(auto i = 0u; i < f.rows(); ++i){
+    //     auto& el = s[i];
+    //     if(el.template as<std::string>() == "Iris-virginica") ids.insert(i);
+    // }
+    // amt::drop_rows(f,amt::in_place,std::move(ids));
+    auto n = amt::name_list{
+        "Id",
+        // "SepalLengthCm"
+        // "SepalWidthCm"
+        // "PetalLengthCm",
+        // "PetalWidthCm",
+        "Species"
+    };
+    auto x = amt::drop_cols(f,amt::out_place, std::move(n));
+    amt::to<double>(x,amt::in_place);
+    auto y = amt::frame<>({f["Species"]});
+    return std::make_pair(x,y);
+}
+
+void plot(amt::series<> const& x, amt::series<> const& y, amt::series<> const& target){
+    namespace plt = matplotlibcpp;
+    plt::title("Logistic Reg");
+    plt::xlabel( norm_str(x.name()) );
+    plt::ylabel( norm_str(y.name()) );
+
+    for(auto i = 0ul; i < x.size(); ++i){
+        auto xel = x[i].template as<double>();
+        auto yel = y[i].template as<double>();
+        auto tel = target[i].template as<double>();
+        plt::plot({xel},{yel}, { 
+            {"marker", "o"}, 
+            {"linestyle",""}, 
+            {"color",tel == 0.0 ? "r" : "b"}
         });
     }
 
-    auto x_train = amt::drop_rows(x,amt::out_place,training_sz);
-    auto y_train = amt::drop_rows(y,amt::out_place,training_sz);
+    // plt::figure_size(1200, 780);
+    plt::show();
+}
 
-    auto x_test = amt::drop_rows(x,amt::out_place,0, training_sz);
-    auto y_test = amt::drop_rows(y,amt::out_place,0, training_sz);
+int main(){
+    auto filename = "/Users/amit/Desktop/code/ML/ML-v2/dataset/Iris.csv";
+    auto temp = amt::read_csv(filename, true);
 
-    auto l_model = amt::LinearRegression(x_train,y_train, 0, amt::linear_regression::gradient_descent{0.5,1500});
-    auto pred = l_model.predict(x_test);
-    std::cout<<amt::regression::calculate_metrics(pred,y_test);
-    return 0;
+    amt::shuffle(temp,static_cast<std::size_t>(std::time(0)));
+    // amt::shuffle(temp);
+
+    auto [X,Y] = preprocess(temp);
+    auto target_name = map_col(Y[0]);
+
+    auto ratio = 0.25;
+    auto training_sz = static_cast<std::size_t>(static_cast<double>(X.rows()) * ratio);
+
+    auto x_train = amt::drop_rows(X,amt::out_place,training_sz);
+    auto y_train = amt::drop_rows(Y,amt::out_place,training_sz);
+
+    auto x_test = amt::drop_rows(X,amt::out_place,0, training_sz);
+    auto y_test = amt::drop_rows(Y,amt::out_place,0, training_sz);
+    
+    auto model = amt::classification::GaussianNB(x_train,y_train);
+    // amt::to<double>(Y,amt::in_place);
+    // std::cout<<model.beta()<<'\n';
+    // plot_pred(model,X[0],X[1],Y[0]);
+    
+    auto y_pred = model.predict(x_test);
+    // std::cout<<model.beta()<<'\n';
+    // y_pred.push_back(y_test);
+    // std::cout<<y_pred<<'\n';
+    auto labels = map_to_vec(target_name);
+    amt::classification::print_metrics(y_pred,y_test,labels);
+    
 }

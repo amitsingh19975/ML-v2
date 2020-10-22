@@ -4,7 +4,7 @@
 #include <model/LinearRegression/optimizer.hpp>
 #include <dataframe.hpp>
 
-namespace amt{
+namespace amt::regression{
 
     struct LinearRegression{
         LinearRegression() = default;
@@ -14,8 +14,8 @@ namespace amt{
         LinearRegression& operator=(LinearRegression && other) = default;
         ~LinearRegression() = default;
 
-        template<typename Optimizer = linear_regression::default_opt>
-        requires linear_regression::is_default_opt_v<Optimizer> || linear_regression::is_gradient_descent_v<Optimizer>
+        template<typename Optimizer = regression::default_opt>
+        requires regression::is_default_opt_v<Optimizer> || regression::is_gradient_descent_v<Optimizer>
         LinearRegression(FrameViewOrFrame auto const& x, 
             FrameViewOrFrame auto const& y,
             double lambda = 0.0,
@@ -85,7 +85,7 @@ namespace amt{
         arma::Mat<double> m_data;
     };
 
-} // amt
+} // amt::regression
 
 
 #endif

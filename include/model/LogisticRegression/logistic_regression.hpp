@@ -4,7 +4,7 @@
 #include <model/LogisticRegression/optimizer.hpp>
 #include <dataframe.hpp>
 
-namespace amt::detail{
+namespace amt::classification::detail{
 
     struct LogisticRegression{
         LogisticRegression() = default;
@@ -16,7 +16,7 @@ namespace amt::detail{
 
         LogisticRegression(FrameViewOrFrame auto const& x, 
             FrameViewOrFrame auto const& y,
-            logistic_regression::gradient_descent opt = {},
+            gradient_descent opt = {},
             bool intercept = true
         )
             : grad(std::move(opt))
@@ -112,7 +112,7 @@ namespace amt::detail{
 
     private:
         arma::Mat<double> m_data;
-        logistic_regression::gradient_descent grad;
+        gradient_descent grad;
         bool intercept{true};
     };
 
@@ -126,7 +126,7 @@ namespace amt::detail{
 
         LogisticRegressionOVR(FrameViewOrFrame auto const& x, 
             FrameViewOrFrame auto const& y,
-            logistic_regression::gradient_descent opt = {},
+            gradient_descent opt = {},
             bool intercept = true
         )
             : grad(std::move(opt))
@@ -161,11 +161,8 @@ namespace amt::detail{
 
             for(i = 0u; i < sz; ++i){
                 auto y_temp = Y;
-                // std::cout<<"============= "<<i<<" ============="<<'\n';
                 for(auto j = 0u; j < y_temp.n_elem; ++j){
-                    // std::cout<<y_temp[j]<<" : ";
                     y_temp[j] = static_cast<double>( static_cast<std::size_t>(y_temp[j]) == i ? 1 : 0 );
-                    // std::cout<<y_temp[j]<<'\n';
                 } 
                 
                 grad(m_data[i],X,y_temp);
@@ -240,13 +237,13 @@ namespace amt::detail{
 
     private:
         std::vector<arma::Mat<double>> m_data;
-        logistic_regression::gradient_descent grad;
+        gradient_descent grad;
         bool intercept{true};
     };
 
-} // amt::detail
+} // amt::classification::detail
 
-namespace amt{
+namespace amt::classification{
     struct OVR{};
     template< typename T = void >
     using LogisticRegression = std::conditional_t<
@@ -254,6 +251,6 @@ namespace amt{
         detail::LogisticRegressionOVR,
         detail::LogisticRegression
     >;
-} // amt
+} // amt::classification
 
 #endif

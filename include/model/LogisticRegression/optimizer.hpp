@@ -5,7 +5,7 @@
 #include <functional>
 #include <cmath>
 
-namespace amt::logistic_regression{
+namespace amt::classification{
     
     struct default_opt{
 
@@ -101,7 +101,7 @@ namespace amt::logistic_regression{
     template<typename T>
     inline static constexpr bool is_gradient_descent_v = std::is_same_v<T,gradient_descent>;
 
-} // namespace amt::logistic_regression
+} // namespace amt::classification
 
 
 #endif
