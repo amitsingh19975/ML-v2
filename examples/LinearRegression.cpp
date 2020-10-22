@@ -181,9 +181,13 @@ int main(int, char **) {
 
     auto x_test = amt::drop_rows(x,amt::out_place,0, training_sz);
     auto y_test = amt::drop_rows(y,amt::out_place,0, training_sz);
+    // plot(x,y);
 
     auto l_model = amt::LinearRegression(x_train,y_train, 0, amt::linear_regression::gradient_descent{0.5,1500});
+    // plot_pred(l_model.beta(1), l_model.beta(0), x_test, y_test);
     auto pred = l_model.predict(x_test);
+    // y_test.push_back(std::move(pred));
+    // std::cout<<l_model.beta()<<'\n';
     std::cout<<amt::regression::calculate_metrics(pred,y_test);
     return 0;
 }
