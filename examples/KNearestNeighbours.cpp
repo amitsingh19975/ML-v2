@@ -130,7 +130,7 @@ int main(){
     auto x_test = amt::drop_rows(X,amt::out_place,0, training_sz);
     auto y_test = amt::drop_rows(Y,amt::out_place,0, training_sz);
     
-    auto model = amt::classification::KNearestNeighbours(x_train,y_train,3, amt::distance::Minkowski{2});
+    auto model = amt::classification::KNearestNeighbours(x_train,y_train,4);
     // amt::to<double>(Y,amt::in_place);
     // std::cout<<model.beta()<<'\n';
     // plot_pred(model,X[0],X[1],Y[0]);
