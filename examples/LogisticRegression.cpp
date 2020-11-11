@@ -6,6 +6,9 @@
 #include <dataframe.hpp>
 #include <model/LogisticRegression/logistic_regression.hpp>
 #include <metrics/classification.hpp>
+#include <matplot/matplot.h>
+
+namespace plt = matplot;
 
 inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
@@ -89,26 +92,21 @@ auto preprocess(amt::Frame auto& f){
     return std::make_pair(x,y);
 }
 
-// void plot(amt::series const& x, amt::series const& y, amt::series const& target){
-//     namespace plt = matplotlibcpp;
-//     plt::title("Logistic Reg");
-//     plt::xlabel( norm_str(x.name()) );
-//     plt::ylabel( norm_str(y.name()) );
 
-//     for(auto i = 0ul; i < x.size(); ++i){
-//         auto xel = amt::get<double>(x[i]);
-//         auto yel = amt::get<double>(y[i]);
-//         auto tel = amt::get<double>(target[i]);
-//         plt::plot({xel},{yel}, { 
-//             {"marker", "o"}, 
-//             {"linestyle",""}, 
-//             {"color",tel == 0.0 ? "r" : "b"}
-//         });
-//     }
+void plot(amt::frame const& x, amt::series const& tar){
+    
+    auto xv = amt::to_vector<double>(x[0]);
+    auto yv = amt::to_vector<double>(x[1]);
+    auto zv = amt::to_vector<double>(x[2]);
+    auto c = amt::to_vector<double>(tar);
+    std::vector<double> sizes(xv.size(), 8);
 
-//     // plt::figure_size(1200, 780);
-//     plt::show();
-// }
+    auto l = plt::scatter3(xv, yv, zv, sizes, c);
+    l->marker_face(true);
+    l->marker_style(plt::line_spec::marker_style::diamond);
+
+    plt::show();
+}
 
 // template<typename T>
 // void plot_pred(amt::classification::LogisticRegression<T> const&, amt::series const& x, amt::series const& y, amt::series const& target){
@@ -205,14 +203,9 @@ int main(){
     auto y_test = amt::drop_row(Y,0, training_sz);
     
     auto model = amt::classification::LogisticRegression<amt::classification::OVR>(x_train,y_train);
-    // amt::cast<double>(Y,amt::tag::inplace);
-    // std::cout<<model.beta()<<'\n';
-    // plot_pred(model,X[0],X[1],Y[0]);
-    
     auto y_pred = model.predict(x_test);
-    // std::cout<<model.beta()<<'\n';
-    // y_pred.push_back(y_test);
-    // std::cout<<y_pred<<'\n';
+    // plot(X,Y[0]);
+
     auto labels = map_to_vec(target_name);
     amt::classification::print_metrics(y_pred,y_test,labels);
 }

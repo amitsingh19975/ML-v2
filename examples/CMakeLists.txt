@@ -9,7 +9,7 @@ if ( EXISTS "${EXAMPLE_LIST_PATH}" )
     add_executable( "${example_name}" "${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE_FILES}")
     target_link_libraries( "${example_name}" PRIVATE 
                             project_options project_warnings 
-                            CONAN_PKG::docopt.cpp ${OPENMP_LIB} ${ARMADILLO_LIBRARIES}
+                            CONAN_PKG::docopt.cpp ${OPENMP_LIB} ${ARMADILLO_LIBRARIES} ${MATPLOT_LIB}
     )
     
   endforeach(EXAMPLE_FILES ${EXAMPLE_LIST})
