@@ -74,14 +74,14 @@ namespace amt::classification{
         }
     };
 
-    double weighted_sum( SeriesViewOrSeries auto const& sample_score, bool normalize = false ){
+    double weighted_sum( Series auto const& sample_score, bool normalize = false ){
         if(normalize)
-            return mean(sample_score);
+            return mean<>(sample_score);
         else
-            return sum(sample_score, std::plus<double>{});
+            return reduce_col(sample_score, 0.0, std::plus<double>{});
     }
     
-    double weighted_sum( SeriesViewOrSeries auto const& sample_score, SeriesViewOrSeries auto const& sample_weight, bool normalize = false ){
+    double weighted_sum( Series auto const& sample_score, Series auto const& sample_weight, bool normalize = false ){
         double res{};
         std::size_t sz = sample_score.size();
         #pragma omp parallel for schedule(static) reduction( + : res )
@@ -96,7 +96,7 @@ namespace amt::classification{
             return res;
     }
 
-    std::size_t count_nonzero(FrameViewOrFrame auto const& diff, std::size_t idx = 0u){
+    std::size_t count_nonzero(Frame auto const& diff, std::size_t idx = 0u){
         auto const& s = diff[idx];
         std::size_t ct{};
         auto sz = s.size();
@@ -108,11 +108,11 @@ namespace amt::classification{
         return ct;
     }
 
-    double accuracy(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true, bool normalize = true){
+    double accuracy(Frame auto const& y_pred, Frame auto const& y_true, bool normalize = true){
         return accuracy(y_pred[0], y_true[0], normalize);
     }
 
-    double accuracy(SeriesViewOrSeries auto y_pred, SeriesViewOrSeries auto const& y_true, bool normalize = true){
+    double accuracy(Series auto y_pred, Series auto const& y_true, bool normalize = true){
         if(y_pred.size() != y_true.size()){
             throw std::runtime_error("y_pred and y_true size mismatch");
         }
@@ -124,12 +124,12 @@ namespace amt::classification{
         return weighted_sum(y_pred,normalize);
     }
 
-    frame<> confusion_matrix(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true, std::size_t labels){
+    frame confusion_matrix(Frame auto const& y_pred, Frame auto const& y_true, std::size_t labels){
         return confusion_matrix(y_pred[0], y_true[0], labels);
     }
 
-    frame<> confusion_matrix(SeriesViewOrSeries auto y_pred, SeriesViewOrSeries auto const& y_true, std::size_t labels){
-        frame<> ret(labels,labels, double(0));
+    frame confusion_matrix(Series auto y_pred, Series auto const& y_true, std::size_t labels){
+        frame ret(labels,labels, double(0));
         for(auto i = 0u; i < y_pred.size(); ++i){
             double p = y_pred[i];
             double t = y_true[i];
@@ -140,10 +140,8 @@ namespace amt::classification{
         return ret;
     }
 
-    std::string confusion_matrix_to_string(FrameViewOrFrame auto const& mat, std::vector<std::string> labels = {}, std::size_t indent = 3){
-        std::stringstream ss;
-        std::size_t max_width{};
-        std::size_t number_max_width{};
+    template<Frame FrameType>
+    std::string confusion_matrix_to_string(FrameType mat, std::vector<std::string> labels = {}, std::size_t indent = 3){
 
         if( labels.size() != mat.cols() ){
             labels.resize(mat.cols());
@@ -152,57 +150,25 @@ namespace amt::classification{
             }
         }
 
-        for(auto const& el : labels){
-            max_width = std::max(max_width, el.size());
-        }
-
-        auto temp = to<std::string>(mat,out_place);
-
-        for(auto const& s : temp){
-            for(auto const& el : s){
-                std::string const& str = el;
-                number_max_width = std::max(number_max_width, str.size());
-            }
-        }
-
-        max_width += 2;
-        
-        ss<< std::string(max_width + indent, ' ');
-
-        for(auto const& el : labels){
-            auto w = std::max(number_max_width, el.size()) - el.size();
-            ss << std::string(w, ' ') << std::quoted(el) << std::string(indent, ' ');
-        }
-        ss << '\n';
-        auto sz = labels.size();
-        for( auto i = 0u; i < sz; ++i ){
-            auto const& el = labels[i];
-            auto w = max_width - el.size();
-            ss << std::quoted(el) << std::string(w + indent - 2, ' ');
-            for(auto j = 0u; j < sz; ++j){
-                std::string const& str = temp[j][i];
-                auto diff = std::max(labels[j].size(), number_max_width) - str.size() + 1;
-                auto start_sp = std::string(diff, ' ');
-                auto end_sp = std::string(indent + 1, ' ');
-                ss << start_sp << temp[j][i] << end_sp;
-            }
-            ss << '\n';
-        }
-        return ss.str();
+        using series_type = typename FrameType::value_type;
+        series_type col_labels("Lables",labels.size());
+        std::copy(labels.begin(), labels.end(), col_labels.begin());
+        mat.set_names(std::move(labels));
+        return pretty_string(concat_col(col_labels, mat), indent, false, 30ul, false);
     }
 
-    void print_confusion_matrix(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true, std::vector<std::string> const& labels, std::size_t indent = 3){
+    void print_confusion_matrix(Frame auto const& y_pred, Frame auto const& y_true, std::vector<std::string> const& labels, std::size_t indent = 3){
         print_confusion_matrix(y_pred[0], y_true[0], labels, indent);
     }
 
-    void print_confusion_matrix(SeriesViewOrSeries auto const& y_pred, SeriesViewOrSeries auto const& y_true, std::vector<std::string> const& labels, std::size_t indent = 3){
+    void print_confusion_matrix(Series auto const& y_pred, Series auto const& y_true, std::vector<std::string> const& labels, std::size_t indent = 3){
         auto conf = confusion_matrix(y_pred, y_true, labels.size());
         std::cout << confusion_matrix_to_string(conf, labels, indent);
     }
 
     namespace detail{
 
-        std::vector<double> true_pos(FrameViewOrFrame auto const& mat){
+        std::vector<double> true_pos(Frame auto const& mat){
             
             std::vector<double> res(mat.cols(),0);
             for(auto i = 0u; i < mat.cols(); ++i){
@@ -211,7 +177,7 @@ namespace amt::classification{
             return res;
         }
         
-        std::vector<double> true_neg(FrameViewOrFrame auto const& mat){
+        std::vector<double> true_neg(Frame auto const& mat){
             auto cols = mat.cols();
             auto rows = mat.rows();
             std::vector<double> res(cols,0);
@@ -226,7 +192,7 @@ namespace amt::classification{
             return res;
         }
 
-        std::vector<double> false_neg(FrameViewOrFrame auto const& mat){
+        std::vector<double> false_neg(Frame auto const& mat){
             auto cols = mat.cols();
             auto rows = mat.rows();
             std::vector<double> res(cols,0);
@@ -239,7 +205,7 @@ namespace amt::classification{
             return res;
         }
         
-        std::vector<double> false_pos(FrameViewOrFrame auto const& mat){
+        std::vector<double> false_pos(Frame auto const& mat){
             auto cols = mat.cols();
             auto rows = mat.rows();
             std::vector<double> res(cols,0);
@@ -267,7 +233,7 @@ namespace amt::classification{
 
     } // namespace detail
 
-    metrics metrics_from_confusion_matrix(FrameViewOrFrame auto const& mat){
+    metrics metrics_from_confusion_matrix(Frame auto const& mat){
         
         metrics res;
 
@@ -390,12 +356,12 @@ namespace amt::classification{
         return res;
     }
 
-    metrics calculate_metrics(SeriesViewOrSeries auto y_pred, SeriesViewOrSeries auto const& y_true, std::size_t labels){
+    metrics calculate_metrics(Series auto y_pred, Series auto const& y_true, std::size_t labels){
         auto conf = confusion_matrix(y_pred, y_true, labels);
         return metrics_from_confusion_matrix(conf);
     }
 
-    metrics calculate_metrics(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true, std::size_t labels){
+    metrics calculate_metrics(Frame auto const& y_pred, Frame auto const& y_true, std::size_t labels){
         auto conf = confusion_matrix(y_pred[0], y_true[0], labels);
         return metrics_from_confusion_matrix(conf);
     }
@@ -450,14 +416,14 @@ namespace amt::classification{
         return os << metrics_to_string(m,m.labels);
     }
 
-    void print_metrics(SeriesViewOrSeries auto y_pred, SeriesViewOrSeries auto const& y_true, std::vector<std::string> labels){
+    void print_metrics(Series auto y_pred, Series auto const& y_true, std::vector<std::string> labels){
         auto conf = confusion_matrix(y_pred, y_true, labels.size());
         auto m = metrics_from_confusion_matrix(conf);
         std::cout<<confusion_matrix_to_string(conf,labels)<<'\n';
         std::cout<<metrics_to_string(m,std::move(labels));
     }
 
-    void print_metrics(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true, std::vector<std::string> labels){
+    void print_metrics(Frame auto const& y_pred, Frame auto const& y_true, std::vector<std::string> labels){
         print_metrics(y_pred[0], y_true[0], std::move(labels));
     }
 

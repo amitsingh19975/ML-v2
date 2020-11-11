@@ -24,29 +24,29 @@ namespace amt::regression{
         }
     };
 
-    metrics calculate_metrics(SeriesViewOrSeries auto const& y_pred, SeriesViewOrSeries auto const& y_true){
-        if( !y_pred.is_floating_point() || !y_true.is_floating_point() ){
+    metrics calculate_metrics(Series auto const& y_pred, Series auto const& y_true){
+        if( !is_floating_point(y_pred) || !is_floating_point(y_true) ){
             throw std::runtime_error("predicted value and true value must be floating point");
         }
-        auto diff = *( y_true - y_pred );
+        auto diff = y_true - y_pred;
         metrics m;
         auto sz = static_cast<double>(diff.size());
-        m.max_err = max(diff);
-        m.mean_err = mean(diff);
+        m.max_err = max<>(diff);
+        m.mean_err = mean<>(diff);
 
-        m.mean_abs_err = sum(diff,[](double const& p, double const& val){
+        m.mean_abs_err = reduce_col(diff,0.0,[](double const& p, double const& val){
             return p + std::abs(val);
         });
         m.mean_abs_err /= sz;
 
-        m.mean_sq_err = sum(diff,[](double const& p, double const& val){
+        m.mean_sq_err = reduce_col(diff,0.0,[](double const& p, double const& val){
             return p + val * val;
         });
         m.mean_sq_err /= sz;
 
-        auto y_true_mean = mean(y_true);
+        auto y_true_mean = mean<>(y_true);
 
-        auto ss_total = sum(y_true,[y_true_mean](double const& p, double const& val){
+        auto ss_total = reduce_col(y_true, 0., [y_true_mean](double const& p, double const& val){
             auto temp = val - y_true_mean;
             return p + temp * temp;
         });
@@ -56,7 +56,7 @@ namespace amt::regression{
         return m; 
     }
 
-    metrics calculate_metrics(FrameViewOrFrame auto const& y_pred, FrameViewOrFrame auto const& y_true){
+    metrics calculate_metrics(Frame auto const& y_pred, Frame auto const& y_true){
         return calculate_metrics(y_pred[0], y_true[0]);
     }
 

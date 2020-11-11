@@ -24,9 +24,9 @@ namespace amt::kernel{
             return exp / den;
         }
 
-        auto& operator()(SeriesViewOrSeries auto& s) const noexcept{
-            auto m = mean(s);
-            auto v = var(s);
+        auto& operator()(Series auto& s, tag::inplace_t) const noexcept{
+            auto m = mean<>(s);
+            auto v = var<>(s);
 
             for(auto& el : s){
                 double val = el;
@@ -35,9 +35,9 @@ namespace amt::kernel{
             return s;
         }
 
-        auto operator()(SeriesViewOrSeries auto const& s, out_place_t /* tag */) const noexcept{
-            auto m = mean(s);
-            auto v = var(s);
+        auto operator()(Series auto const& s) const noexcept{
+            auto m = mean<>(s);
+            auto v = var<>(s);
             auto temp = s;
 
             for(auto& el : temp){

@@ -52,7 +52,7 @@ namespace amt::distance{
             return std::sqrt( (dx * dx) + (dy * dy) );
         }
 
-        double operator()(SeriesViewOrSeries auto const& vec1, SeriesViewOrSeries auto const& vec2) const{
+        double operator()(Series auto const& vec1, Series auto const& vec2) const{
             assert(vec1.size() == vec2.size());
             auto sz = vec1.size();
             double dis = 0.;
@@ -66,7 +66,7 @@ namespace amt::distance{
         }
 
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2) const{
             using value_type = T;
 
             assert(f1.cols() == f2.cols());
@@ -106,7 +106,7 @@ namespace amt::distance{
 
         
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2, std::size_t f2_row) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2, std::size_t f2_row) const{
             using value_type = T;
 
             assert(f1.cols() == f2.cols());
@@ -154,7 +154,7 @@ namespace amt::distance{
             return std::abs(dx) + std::abs(dy);
         }
         
-        double operator()(SeriesViewOrSeries auto const& vec1, SeriesViewOrSeries auto const& vec2) const{
+        double operator()(Series auto const& vec1, Series auto const& vec2) const{
             assert(vec1.size() == vec2.size());
             auto sz = vec1.size();
             double dis = 0.;
@@ -168,7 +168,7 @@ namespace amt::distance{
         }
 
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2) const{
             using value_type = T;
 
             assert(f1.cols() == f2.cols());
@@ -205,7 +205,7 @@ namespace amt::distance{
         }
 
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2, std::size_t f2_row) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2, std::size_t f2_row) const{
             using value_type = T;
 
             assert(f1.cols() == f2.cols());
@@ -265,7 +265,7 @@ namespace amt::distance{
             return std::pow(dx_p + dy_p, p_inv);
         }
 
-        double operator()(SeriesViewOrSeries auto const& vec1, SeriesViewOrSeries auto const& vec2) const{
+        double operator()(Series auto const& vec1, Series auto const& vec2) const{
             assert(vec1.size() == vec2.size());
             double p_inv = 1 / m_p;
             auto sz = vec1.size();
@@ -280,7 +280,7 @@ namespace amt::distance{
         }
 
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2) const{
             using value_type = T;
 
             double p_inv = 1 / m_p;
@@ -320,7 +320,7 @@ namespace amt::distance{
         }
 
         template<typename T>
-        void operator()(std::vector< T >& dis_vec, FrameViewOrFrame auto const& f1, FrameViewOrFrame auto const& f2, std::size_t f2_row) const{
+        void operator()(std::vector< T >& dis_vec, Frame auto const& f1, Frame auto const& f2, std::size_t f2_row) const{
             using value_type = T;
 
             double p_inv = 1 / m_p;

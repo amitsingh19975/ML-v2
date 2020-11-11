@@ -1,11 +1,9 @@
  #include <algorithm>
 #include <functional>
-#include <functions.hpp>
 #include <iostream>
 #include <unordered_map>
 #include <numeric>
 #include <dataframe.hpp>
-#include <matplotlibcpp.h>
 #include <model/LogisticRegression/logistic_regression.hpp>
 #include <metrics/classification.hpp>
 
@@ -42,19 +40,20 @@ std::string norm_str(std::string name){
     return name;
 }
 
-auto map_col(amt::Series auto& s){
+auto map_col(amt::PureSeries auto& s){
     std::unordered_map<std::string,double> ret;
     double i = 0.0;
+    s.reset_dtype();
     for(auto& el : s){
-        amt::visit(el, [&ret,&i,&el](std::string& s){
-            if(auto it = ret.find(s); it != ret.end()){
-                el = it->second;
-            }else{
-                ret.insert({s, i});
-                el = i++;
-            }
-        });
+        auto &str = get<std::string>(el);
+        if(auto it = ret.find(str); it != ret.end()){
+            el = it->second;
+        }else{
+            ret.insert({str, i});
+            el = i++;
+        }
     }
+    s.dtype(amt::dtype<double>());
     return ret;
 }
 
@@ -75,7 +74,7 @@ auto preprocess(amt::Frame auto& f){
     //     auto& el = s[i];
     //     if(el.template as<std::string>() == "Iris-virginica") ids.insert(i);
     // }
-    // amt::drop_rows(f,amt::in_place,std::move(ids));
+    // amt::drop_row(f,amt::tag::inplace,std::move(ids));
     auto n = amt::name_list{
         "Id",
         // "SepalLengthCm"
@@ -84,103 +83,103 @@ auto preprocess(amt::Frame auto& f){
         // "PetalWidthCm",
         "Species"
     };
-    auto x = amt::drop_cols(f,amt::out_place, std::move(n));
-    amt::to<double>(x,amt::in_place);
-    auto y = amt::frame<>({f["Species"]});
+    auto x = amt::drop_col(f, std::move(n));
+    amt::cast<double>(x,amt::tag::inplace);
+    auto y = amt::frame({f["Species"]});
     return std::make_pair(x,y);
 }
 
-void plot(amt::series<> const& x, amt::series<> const& y, amt::series<> const& target){
-    namespace plt = matplotlibcpp;
-    plt::title("Logistic Reg");
-    plt::xlabel( norm_str(x.name()) );
-    plt::ylabel( norm_str(y.name()) );
+// void plot(amt::series const& x, amt::series const& y, amt::series const& target){
+//     namespace plt = matplotlibcpp;
+//     plt::title("Logistic Reg");
+//     plt::xlabel( norm_str(x.name()) );
+//     plt::ylabel( norm_str(y.name()) );
 
-    for(auto i = 0ul; i < x.size(); ++i){
-        auto xel = x[i].template as<double>();
-        auto yel = y[i].template as<double>();
-        auto tel = target[i].template as<double>();
-        plt::plot({xel},{yel}, { 
-            {"marker", "o"}, 
-            {"linestyle",""}, 
-            {"color",tel == 0.0 ? "r" : "b"}
-        });
-    }
+//     for(auto i = 0ul; i < x.size(); ++i){
+//         auto xel = amt::get<double>(x[i]);
+//         auto yel = amt::get<double>(y[i]);
+//         auto tel = amt::get<double>(target[i]);
+//         plt::plot({xel},{yel}, { 
+//             {"marker", "o"}, 
+//             {"linestyle",""}, 
+//             {"color",tel == 0.0 ? "r" : "b"}
+//         });
+//     }
 
-    // plt::figure_size(1200, 780);
-    plt::show();
-}
+//     // plt::figure_size(1200, 780);
+//     plt::show();
+// }
 
-template<typename T>
-void plot_pred(amt::classification::LogisticRegression<T> const&, amt::series<> const& x, amt::series<> const& y, amt::series<> const& target){
-    namespace plt = matplotlibcpp;
-    plt::title("Logistic Reg");
-    plt::xlabel( norm_str(x.name()) );
-    plt::ylabel( norm_str(y.name()) );
-    auto sz = x.size();
+// template<typename T>
+// void plot_pred(amt::classification::LogisticRegression<T> const&, amt::series const& x, amt::series const& y, amt::series const& target){
+//     namespace plt = matplotlibcpp;
+//     plt::title("Logistic Reg");
+//     plt::xlabel( norm_str(x.name()) );
+//     plt::ylabel( norm_str(y.name()) );
+//     auto sz = x.size();
 
-    // auto x_max = amt::max(x);
-    // auto x_min = amt::min(x);
+//     // auto x_max = amt::max(x);
+//     // auto x_min = amt::min(x);
     
-    // auto y_max = amt::max(y);
-    // auto y_min = amt::min(y);
+//     // auto y_max = amt::max(y);
+//     // auto y_min = amt::min(y);
 
-    // auto lsz = 10;
+//     // auto lsz = 10;
 
-    // arma::Col<double> ones = arma::ones(lsz);
-    // arma::Col<double> xl = arma::linspace(x_min,x_max,lsz);
-    // arma::Col<double> yl = arma::linspace(y_min,y_max,lsz);
+//     // arma::Col<double> ones = arma::ones(lsz);
+//     // arma::Col<double> xl = arma::linspace(x_min,x_max,lsz);
+//     // arma::Col<double> yl = arma::linspace(y_min,y_max,lsz);
 
-    // arma::Mat<double> x_range = arma::join_rows(ones, arma::join_rows(xl,yl));
-    // arma::Mat<double> y_prob = model.predict(x_range);
+//     // arma::Mat<double> x_range = arma::join_rows(ones, arma::join_rows(xl,yl));
+//     // arma::Mat<double> y_prob = model.predict(x_range);
 
-    // std::vector<std::vector<double>> xx(sz,std::vector<double>(sz));
-    // std::vector<std::vector<double>> yy(sz,std::vector<double>(sz));
-    // std::vector<std::vector<double>> y_pred(sz,std::vector<double>(1));
+//     // std::vector<std::vector<double>> xx(sz,std::vector<double>(sz));
+//     // std::vector<std::vector<double>> yy(sz,std::vector<double>(sz));
+//     // std::vector<std::vector<double>> y_pred(sz,std::vector<double>(1));
 
-    // for(auto i = 0u; i < lsz; ++i){
-    //     xl = arma::join_cols(xl,)
-    // }
+//     // for(auto i = 0u; i < lsz; ++i){
+//     //     xl = arma::join_cols(xl,)
+//     // }
 
-    // for(auto i = 0u; i < sz; ++i){
-    //     for(auto j = 0u; j < sz; ++j){
-    //         xx[i][j] = xl[j];
-    //         xx[j][i] = yl[i];
-    //     }
-    // }
+//     // for(auto i = 0u; i < sz; ++i){
+//     //     for(auto j = 0u; j < sz; ++j){
+//     //         xx[i][j] = xl[j];
+//     //         xx[j][i] = yl[i];
+//     //     }
+//     // }
 
-    // for(auto i = 0u; i < sz; ++i) y_pred[i][0] = y_prob(i,0);
+//     // for(auto i = 0u; i < sz; ++i) y_pred[i][0] = y_prob(i,0);
 
-    for(auto i = 0ul; i < sz; ++i){
-        auto xel = x[i].template as<double>();
-        auto yel = y[i].template as<double>();
-        auto tel = target[i].template as<double>();
-        plt::plot({xel},{yel}, { 
-            {"marker", "o"}, 
-            {"linestyle",""}, 
-            {"color",tel == 0.0 ? "r" : "b"},
-        });
-    }
+//     for(auto i = 0ul; i < sz; ++i){
+//         auto xel = amt::get<double>(x[i]);
+//         auto yel = amt::get<double>(y[i]);
+//         auto tel = amt::get<double>(target[i]);
+//         plt::plot({xel},{yel}, { 
+//             {"marker", "o"}, 
+//             {"linestyle",""}, 
+//             {"color",tel == 0.0 ? "r" : "b"},
+//         });
+//     }
 
-    // plt::contour(xx,yy,y_pred);
-    // plt::figure_size(1200, 780);
-    plt::show();
-}
+//     // plt::contour(xx,yy,y_pred);
+//     // plt::figure_size(1200, 780);
+//     plt::show();
+// }
 
-double cal_err(amt::FrameViewOrFrame auto const& y_p, amt::FrameViewOrFrame auto const& y){
+double cal_err(amt::Frame auto const& y_p, amt::Frame auto const& y){
     using frame_type = std::decay_t<decltype(y_p)>;
     frame_type diff = (y_p - y);
     double m = static_cast<double>(y.rows());
-    double sum = amt::accumulate(diff, 0.0, [](double r, double v){
+    double sum = amt::reduce_col(diff, 0.0, [](double r, double v){
         return r + ( v == 0 );
     });
     return ( sum / m ) * 100.0;
 }
 
-double cal_err(amt::FrameViewOrFrame auto const& y){
+double cal_err(amt::Frame auto const& y){
     auto diff = *(y[0] - y[1]);
     double m = static_cast<double>(y.rows());
-    double sum = amt::accumulate(diff, 0.0, [](double r, double v){
+    double sum = amt::reduce_col(diff, 0.0, [](double r, double v){
         return r + ( v == 0 );
     });
     return ( sum / m ) * 100.0;
@@ -190,7 +189,7 @@ int main(){
     auto filename = "/Users/amit/Desktop/code/ML/ML-v2/dataset/Iris.csv";
     auto temp = amt::read_csv(filename, true);
 
-    amt::shuffle(temp,static_cast<std::size_t>(std::time(0)));
+    amt::shuffle(temp,static_cast<unsigned>(std::time(0)));
     // amt::shuffle(temp);
 
     auto [X,Y] = preprocess(temp);
@@ -199,14 +198,14 @@ int main(){
     auto ratio = 0.25;
     auto training_sz = static_cast<std::size_t>(static_cast<double>(X.rows()) * ratio);
 
-    auto x_train = amt::drop_rows(X,amt::out_place,training_sz);
-    auto y_train = amt::drop_rows(Y,amt::out_place,training_sz);
+    auto x_train = amt::drop_row(X,training_sz);
+    auto y_train = amt::drop_row(Y,training_sz);
 
-    auto x_test = amt::drop_rows(X,amt::out_place,0, training_sz);
-    auto y_test = amt::drop_rows(Y,amt::out_place,0, training_sz);
+    auto x_test = amt::drop_row(X,0, training_sz);
+    auto y_test = amt::drop_row(Y,0, training_sz);
     
     auto model = amt::classification::LogisticRegression<amt::classification::OVR>(x_train,y_train);
-    // amt::to<double>(Y,amt::in_place);
+    // amt::cast<double>(Y,amt::tag::inplace);
     // std::cout<<model.beta()<<'\n';
     // plot_pred(model,X[0],X[1],Y[0]);
     

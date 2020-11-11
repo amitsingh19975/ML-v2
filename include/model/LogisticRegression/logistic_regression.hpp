@@ -14,8 +14,8 @@ namespace amt::classification::detail{
         LogisticRegression& operator=(LogisticRegression && other) = default;
         ~LogisticRegression() = default;
 
-        LogisticRegression(FrameViewOrFrame auto const& x, 
-            FrameViewOrFrame auto const& y,
+        LogisticRegression(Frame auto const& x, 
+            Frame auto const& y,
             gradient_descent opt = {},
             bool intercept = true
         )
@@ -24,14 +24,14 @@ namespace amt::classification::detail{
         {
             if( x.rows() != y.rows() ){
                 throw std::runtime_error(
-                    "amt::LogisticRegression(FrameViewOrFrame auto const&, FrameViewOrFrame auto const&, bool) : "
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
                     "Rows of the Dependent Variable(Y) should be equal to Rows of the Independent Variable(X)"
                 );
             }
             
             if( y.cols() != 1u ){
                 throw std::runtime_error(
-                    "amt::LogisticRegression(FrameViewOrFrame auto const&, FrameViewOrFrame auto const&, bool) : "
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
                     "Cols of the Dependent Variable(Y) should be one"
                 );
             }
@@ -41,17 +41,17 @@ namespace amt::classification::detail{
 
             auto i = 0ul;
             for(auto const& el : y[0]){
-                Y(i++,0) = el.template as<double>();
+                Y(i++,0) = get<double>(el);
             }
             
             grad(m_data,X,Y);
         }
 
-        void assignX(arma::Mat<double>& X, FrameViewOrFrame auto& x) const{
+        void assignX(arma::Mat<double>& X, Frame auto& x) const{
 
             for(auto i = 0ul; i < x.rows(); ++i){
                 for(auto j = 0ul; j < x.cols(); ++j){
-                    X(i,j + static_cast<std::size_t>(intercept)) = x[j][i].template as<double>();
+                    X(i,j + static_cast<std::size_t>(intercept)) = get<double>(x[j][i]);
                 }
             }
 
@@ -62,9 +62,9 @@ namespace amt::classification::detail{
             }
         }
 
-        amt::frame<> predict_prob(FrameViewOrFrame auto& x) const{
+        amt::frame predict_prob(Frame auto& x) const{
             
-            amt::frame<> res(1u, x.rows());
+            amt::frame res(1u, x.rows());
             
             arma::Mat<double> X(x.rows(), x.cols() + static_cast<std::size_t>(intercept));
             assignX(X,x);
@@ -78,9 +78,9 @@ namespace amt::classification::detail{
             return res;
         }
 
-        amt::frame<> predict(FrameViewOrFrame auto& x, double threshold = 0.5) const{
+        amt::frame predict(Frame auto& x, double threshold = 0.5) const{
             auto res = predict_prob(x);
-            amt::transform(res,amt::in_place,[threshold](double v){
+            amt::transform(res,amt::tag::inplace,[threshold](double v){
                 return static_cast<double>(v > threshold);
             });
             return res;
@@ -105,7 +105,7 @@ namespace amt::classification::detail{
         }
 
         auto beta() const{
-            series<> s(m_data.n_rows, 0.0, "Beta ( Coefficients of X )");
+            series s("Beta ( Coefficients of X )", m_data.n_rows, 0.0, dtype<double>());
             for(auto i = 0u; i < s.size(); ++i) s[i] = m_data(i,0);
             return s;
         }
@@ -124,8 +124,8 @@ namespace amt::classification::detail{
         LogisticRegressionOVR& operator=(LogisticRegressionOVR && other) = default;
         ~LogisticRegressionOVR() = default;
 
-        LogisticRegressionOVR(FrameViewOrFrame auto const& x, 
-            FrameViewOrFrame auto const& y,
+        LogisticRegressionOVR(Frame auto const& x, 
+            Frame auto const& y,
             gradient_descent opt = {},
             bool intercept = true
         )
@@ -134,14 +134,14 @@ namespace amt::classification::detail{
         {
             if( x.rows() != y.rows() ){
                 throw std::runtime_error(
-                    "amt::LogisticRegression(FrameViewOrFrame auto const&, FrameViewOrFrame auto const&, bool) : "
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
                     "Rows of the Dependent Variable(Y) should be equal to Rows of the Independent Variable(X)"
                 );
             }
             
             if( y.cols() != 1u ){
                 throw std::runtime_error(
-                    "amt::LogisticRegression(FrameViewOrFrame auto const&, FrameViewOrFrame auto const&, bool) : "
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
                     "Cols of the Dependent Variable(Y) should be one"
                 );
             }
@@ -151,7 +151,7 @@ namespace amt::classification::detail{
 
             auto i = 0ul;
             for(auto const& el : y[0]){
-                Y(i++,0) = el.template as<double>();
+                Y(i++,0) = get<double>(el);
             }
 
             auto max = static_cast<std::size_t>(Y.max());
@@ -169,11 +169,11 @@ namespace amt::classification::detail{
             }
         }
 
-        void assignX(arma::Mat<double>& X, FrameViewOrFrame auto& x) const{
+        void assignX(arma::Mat<double>& X, Frame auto& x) const{
 
             for(auto i = 0ul; i < x.rows(); ++i){
                 for(auto j = 0ul; j < x.cols(); ++j){
-                    X(i,j + static_cast<std::size_t>(intercept)) = x[j][i].template as<double>();
+                    X(i,j + static_cast<std::size_t>(intercept)) = get<double>(x[j][i]);
                 }
             }
 
@@ -184,9 +184,10 @@ namespace amt::classification::detail{
             }
         }
 
-        amt::frame<> predict_prob(FrameViewOrFrame auto& x) const{
+        amt::frame predict_prob(Frame auto& x) const{
             auto cols = m_data.size();
-            amt::frame<> res(cols, x.rows());
+            amt::frame res(cols, x.rows());
+            res.dtype(dtype<double>());
             arma::Mat<double> X(x.rows(), x.cols() + static_cast<std::size_t>(intercept));
             assignX(X,x);
             std::vector<std::string> names;
@@ -197,17 +198,17 @@ namespace amt::classification::detail{
                 }
                 names.push_back( std::string("Prediction ") + std::to_string(i) );
             }
-            res.set_name(std::move(names));
+            res.set_names(names);
             return res;
         }
 
-        amt::frame<> predict(FrameViewOrFrame auto& x) const{
+        amt::frame predict(Frame auto& x) const{
             auto res = predict_prob(x);
             for(auto i = 0u; i < res.rows(); ++i){
                 auto idx = 0ul;
-                auto max = res[0][i].template as<double>();
+                auto max = get<double>(res[0][i]);
                 for(auto j = 1ul; j < res.cols(); ++j){
-                    auto const& el = res[j][i].template as<double>();
+                    auto const& el = get<double>(res[j][i]);
                     if( max < el ){
                         max = el;
                         idx = j;
@@ -215,9 +216,9 @@ namespace amt::classification::detail{
                 }
                 res[0][i] = static_cast<double>(idx);
             }
-            res.erase(res.begin() + 1, res.end());
-            res.name(0).pop_back();
-            res.name(0).pop_back();
+            res.col_erase(res.begin() + 1, res.end());
+            res[0].name().pop_back();
+            res[0].name().pop_back();
             return res;
         }
 
@@ -226,11 +227,11 @@ namespace amt::classification::detail{
         }
 
         auto beta() const{
-            frame<> temp;
+            frame temp;
             for(auto k = 0u; k < m_data.size(); ++k){
-                series<> s(m_data[k].n_rows, 0.0, std::to_string(k));
+                series s(std::to_string(k), m_data[k].n_rows, 0.0);
                 for(auto i = 0u; i < s.size(); ++i) s[i] = m_data[k](i,0);
-                temp.push_back(std::move(s));
+                temp.col_push_back(std::move(s));
             }
             return temp;
         }

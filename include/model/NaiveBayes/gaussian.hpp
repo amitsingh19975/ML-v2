@@ -7,7 +7,7 @@
 
 namespace amt::classification{
 
-    auto split_based_on_labels(FrameViewOrFrame auto const& x, FrameViewOrFrame auto const& y, std::size_t labels){
+    auto split_based_on_labels(Frame auto const& x, Frame auto const& y, std::size_t labels){
         using frame_type = std::decay_t< decltype(x) >;
 
         auto cols = x.cols();
@@ -17,14 +17,14 @@ namespace amt::classification{
 
         for(auto i = 0u; i < cols; ++i){
             for(auto j = 0u; j < rows; ++j){
-                auto pos = static_cast<std::size_t>(y[0][j].template as<double>());
+                auto pos = static_cast<std::size_t>(get<double>(y[0][j]));
                 auto& f = ret[pos];
                 f[i].push_back(x[i][j]);
             }
         }
 
         for(auto& el : ret){
-            el.set_name(x.names_to_vector());
+            el.set_names(x);
         }
 
         return ret;
@@ -43,8 +43,8 @@ namespace amt::classification{
         GaussianNB& operator=(GaussianNB && other) = default;
         ~GaussianNB() = default;
 
-        GaussianNB(FrameViewOrFrame auto const& x, FrameViewOrFrame auto const& y){
-            auto sz = static_cast<std::size_t>(max(y[0])) + 1;
+        GaussianNB(Frame auto const& x, Frame auto const& y){
+            auto sz = static_cast<std::size_t>(max<>(y[0])) + 1;
             auto cols = x.cols();
             auto rows = x.rows();
 
@@ -56,14 +56,14 @@ namespace amt::classification{
             for(auto i = 0u; i < sz; ++i){
                 m_labels_prob[i] = static_cast<double>(vec_of_series[i].rows()) / static_cast<double>(rows);
                 for(auto j = 0u; j < cols; ++j){
-                    auto m = mean(vec_of_series[i][j]);
-                    auto v = svar(vec_of_series[i][j]);
+                    auto m = mean<>(vec_of_series[i][j]);
+                    auto v = var<>(vec_of_series[i][j], amt::tag::sample);
                     m_summaries[i][j] = {m,v};
                 }
             }
         }
 
-        auto predict_prob(FrameViewOrFrame auto const& x){
+        auto predict_prob(Frame auto const& x){
             using frame_type = std::decay_t< decltype(x) >;
             auto sz = m_labels_prob.size();
             frame_type ret(sz, x.rows());
@@ -83,7 +83,7 @@ namespace amt::classification{
             return ret;
         }
 
-        auto predict(FrameViewOrFrame auto const& x){
+        auto predict(Frame auto const& x){
             using frame_type = std::decay_t< decltype(x) >;
             auto prob = predict_prob(x);
             frame_type ret(1u, x.rows());

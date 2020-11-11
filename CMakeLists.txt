@@ -30,7 +30,6 @@ include(cmake/Doxygen.cmake)
 enable_doxygen()
 
 include(cmake/StaticAnalyzers.cmake)
-include(cmake/Boost.cmake)
 
 option(BUILD_SHARED_LIBS "Enable Compilation of shared libraries" OFF)
 option(ENABLE_TESTING "Enable Test Builds" ON)

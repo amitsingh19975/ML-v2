@@ -1,18 +1,1 @@
-{ 
-    ( Col: "Predicted Value", Type: double )[ 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 2, 1, 1, 1, 2, 0, 2, 0, 2, 1 ]
-    ( Col: "Species", Type: double )[ 0, 1, 0, 0, 1, 0, 1, 0, 1, 2, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 2, 1, 1, 1, 2, 0, 2, 0, 2, 1 ]
-}
-
-                    "Iris-virginica"   "Iris-setosa"   "Iris-versicolor"   
-"Iris-virginica"          12.000000        0.000000            0.000000    
-"Iris-setosa"              0.000000       19.000000            0.000000    
-"Iris-versicolor"          1.000000        0.000000            5.000000    
-
-                                     "Iris-virginica"   "Iris-setosa"   "Iris-versicolor"   
-"Accuracy"                                  0.972973        1.000000            0.972973    
-"Balanced Accuracy"                         0.961538        1.000000            0.984375    
-"F1 Score"                                  0.960000        1.000000            0.909091    
-"Matthews correlation coefficient"          0.941357        1.000000            0.898494    
-"Fowlkes-Mallows index"                     0.960769        1.000000            0.912871    
-"Informedness"                              0.923077        1.000000            0.968750    
-"Markedness"                                0.960000        1.000000            0.833333    
+21612 21612

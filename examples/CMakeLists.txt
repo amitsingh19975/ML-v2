@@ -10,7 +10,6 @@ if ( EXISTS "${EXAMPLE_LIST_PATH}" )
     target_link_libraries( "${example_name}" PRIVATE 
                             project_options project_warnings 
                             CONAN_PKG::docopt.cpp ${OPENMP_LIB} ${ARMADILLO_LIBRARIES}
-                            Python3::Python Python3::NumPy
     )
     
   endforeach(EXAMPLE_FILES ${EXAMPLE_LIST})
