@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <numeric>
 #include <dataframe.hpp>
-#include <model/KAlgorithms/k_nearest_neighbours.hpp>
+#include <model/LogisticRegression/logistic_regression.hpp>
 #include <metrics/classification.hpp>
 #include <matplot/matplot.h>
 
@@ -75,15 +75,15 @@ auto preprocess(amt::Frame auto& f){
     // auto& s = f["Species"];
     // for(auto i = 0u; i < f.rows(); ++i){
     //     auto& el = s[i];
-    //     if(el.template as<std::string>() == "Iris-virginica") ids.insert(i);
+    //     if(amt::get<std::string>(el) == "Iris-virginica") ids.push_back(i);
     // }
     // amt::drop_row(f,amt::tag::inplace,std::move(ids));
     auto n = amt::name_list{
         "Id",
         // "SepalLengthCm"
         // "SepalWidthCm"
-        // "PetalLengthCm",
-        // "PetalWidthCm",
+        "PetalLengthCm",
+        "PetalWidthCm",
         "Species"
     };
     auto x = amt::drop_col(f, std::move(n));
@@ -91,6 +91,7 @@ auto preprocess(amt::Frame auto& f){
     auto y = amt::frame({f["Species"]});
     return std::make_pair(x,y);
 }
+
 
 void plot(amt::frame const& x, amt::series const& tar){
     
@@ -107,30 +108,68 @@ void plot(amt::frame const& x, amt::series const& tar){
     plt::show();
 }
 
+template<typename T>
+void print_v(std::vector<T> const& v){
+    for(auto const& el : v){
+        std::cout<< el <<", ";
+    }
+}
+
+#include <model/DecisionTree/decision_tree.hpp>
+
 int main(){
-    auto filename = "/Users/amit/Desktop/code/ML/ML-v2/dataset/Iris.csv";
-    auto temp = amt::read_csv(filename, true);
-
-    amt::shuffle(temp,static_cast<unsigned>(std::time(0)));
-    // amt::shuffle(temp);
-
-    auto [X,Y] = preprocess(temp);
-    auto target_name = map_col(Y[0]);
-
-    auto ratio = 0.25;
-    auto training_sz = static_cast<std::size_t>(static_cast<double>(X.rows()) * ratio);
-
-    auto x_train = amt::drop_row(X,training_sz);
-    auto y_train = amt::drop_row(Y,training_sz);
-
-    auto x_test = amt::drop_row(X,0, training_sz);
-    auto y_test = amt::drop_row(Y,0, training_sz);
+    // auto filename = "/Users/amit/Desktop/code/ML/ML-v2/dataset/Iris.csv";
+    // auto temp = amt::read_csv(filename, true);
+    amt::frame temp = {
+        { "Day", {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, amt::dtype<std::int64_t>{} },
+        { "Outlook", {"Sunny", "Sunny", "Overcast", "Rain", "Rain", "Rain", "Overcast", "Sunny", "Sunny", "Rain", "Sunny", "Overcast", "Overcast", "Rain"}, amt::dtype<std::string>{} },
+        { "Temperature", {"Hot", "Hot", "Hot", "Mild", "Cool", "Cool", "Cool", "Mild", "Cool", "Mild", "Mild", "Mild", "Hot", "Mild"}, amt::dtype<std::string>{} },
+        { "Humidity", {"High", "High", "High", "High", "Normal", "Normal", "Normal", "High", "Normal", "Normal", "Normal", "High", "Normal", "High"}, amt::dtype<std::string>{} },
+        { "Wind", {"Weak", "Strong", "Weak", "Weak", "Weak", "Strong", "Strong", "Weak", "Weak", "Weak", "Strong", "Strong", "Weak", "Strong"}, amt::dtype<std::string>{} },
+        { "Plays", {"No", "No", "Yes", "Yes", "Yes", "No", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes", "No"}, amt::dtype<std::string>{} }
+    };
+    amt::shuffle(temp, amt::tag::inplace, static_cast<unsigned>(std::time(0)));
     
-    auto model = amt::classification::KNearestNeighbours(x_train,y_train,3);
-    // plot(X,Y[0]);
+    amt::drop_col(temp, amt::tag::inplace, amt::index_list{0});
+
+    std::cout<<amt::pretty_string(temp)<<'\n';
+
+    std::vector< std::vector<amt::box> > mp(temp.cols());
+    for(auto i = 0ul; i < temp.cols(); ++i){
+        auto [cat, _] = amt::sorted_factorize<>(temp[i], amt::tag::inplace);
+        mp[i] = std::move(cat);
+    }
+
+    // for(auto const& el : mp) {
+    //     std::cout<<"[ ";
+    //     print_v(el);
+    //     std::cout<<"]\n";
+    // }
+    amt::classification::DecisionTree<amt::splitter::ID3> t(temp);
+
+    amt::frame p = {
+        {"Outlook", {1,1}, amt::dtype<double>()},
+        {"Wind", {1,0}, amt::dtype<double>()}
+    };
+    auto prd = t.predict(p);
+    p.col_push_back(std::move(prd[0]));
     
-    auto y_pred = model.predict(x_test);
-    auto labels = map_to_vec(target_name);
-    amt::classification::print_metrics(y_pred,y_test,labels);
+    for(auto i = 0ul; i < p.cols() - 1u; ++i){
+        std::unordered_map<amt::box,amt::box> map;
+        auto& s = p[i];
+        auto idx = temp.name_index(s.name());
+        for(auto j = 0u; j < mp[idx].size(); ++j){
+            map[static_cast<double>(j)] = mp[idx][j];
+        }
+        amt::replace(s, amt::tag::inplace, std::move(map));
+    }
+    std::unordered_map<amt::box,amt::box> map;
+    auto idx = temp.cols() - 1u;
+    for(auto j = 0u; j < mp[idx].size(); ++j){
+        map[static_cast<double>(j)] = mp[idx][j];
+    }
+    amt::replace(p.back(), amt::tag::inplace, std::move(map));
+    std::cout<<amt::pretty_string(p)<<'\n';
     
+
 }

@@ -169,6 +169,48 @@ namespace amt::classification::detail{
             }
         }
 
+        LogisticRegressionOVR(Frame auto const& x, 
+            Frame auto const& y,
+            std::size_t labels,
+            gradient_descent opt = {},
+            bool intercept = true
+        )
+            : m_data(labels)
+            , grad(std::move(opt))
+            , intercept(intercept)
+        {
+            if( x.rows() != y.rows() ){
+                throw std::runtime_error(
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
+                    "Rows of the Dependent Variable(Y) should be equal to Rows of the Independent Variable(X)"
+                );
+            }
+            
+            if( y.cols() != 1u ){
+                throw std::runtime_error(
+                    "amt::LogisticRegression(Frame auto const&, Frame auto const&, bool) : "
+                    "Cols of the Dependent Variable(Y) should be one"
+                );
+            }
+            arma::Mat<double> X(x.rows(),x.cols() + static_cast<std::size_t>(intercept)),Y(y.rows(),1u);
+
+            assignX(X,x);
+
+            auto i = 0ul;
+            for(auto const& el : y[0]){
+                Y(i++,0) = get<double>(el);
+            }
+
+            for(i = 0u; i < labels; ++i){
+                auto y_temp = Y;
+                for(auto j = 0u; j < y_temp.n_elem; ++j){
+                    y_temp[j] = static_cast<double>( static_cast<std::size_t>(y_temp[j]) == i ? 1 : 0 );
+                } 
+                
+                grad(m_data[i],X,y_temp);
+            }
+        }
+
         void assignX(arma::Mat<double>& X, Frame auto& x) const{
 
             for(auto i = 0ul; i < x.rows(); ++i){
@@ -216,7 +258,7 @@ namespace amt::classification::detail{
                 }
                 res[0][i] = static_cast<double>(idx);
             }
-            res.col_erase(res.begin() + 1, res.end());
+            res.resize(1u);
             res[0].name().pop_back();
             res[0].name().pop_back();
             return res;

@@ -1,1 +1,22 @@
-21612 21612
+ #            Outlook        Temperature           Humidity               Wind              Plays
+      [ std::string ]    [ std::string ]    [ std::string ]    [ std::string ]    [ std::string ]
+==    ===============    ===============    ===============    ===============    ===============    
+ 0            "Sunny"             "Mild"           "Normal"           "Strong"              "Yes"
+ 1            "Sunny"              "Hot"             "High"           "Strong"               "No"
+ 2             "Rain"             "Cool"           "Normal"           "Strong"               "No"
+ 3             "Rain"             "Cool"           "Normal"             "Weak"              "Yes"
+ 4         "Overcast"              "Hot"             "High"             "Weak"              "Yes"
+ 5         "Overcast"             "Cool"           "Normal"           "Strong"              "Yes"
+ 6         "Overcast"              "Hot"           "Normal"             "Weak"              "Yes"
+ 7             "Rain"             "Mild"             "High"             "Weak"              "Yes"
+ 8         "Overcast"             "Mild"             "High"           "Strong"              "Yes"
+ 9             "Rain"             "Mild"             "High"           "Strong"               "No"
+10            "Sunny"             "Mild"             "High"             "Weak"               "No"
+11            "Sunny"             "Cool"           "Normal"             "Weak"              "Yes"
+12            "Sunny"              "Hot"             "High"             "Weak"               "No"
+13             "Rain"             "Mild"           "Normal"             "Weak"              "Yes"
+#       Outlook          Wind     Predicted
+     [ double ]    [ double ]    [ double ]
+=    ==========    ==========    ==========    
+0        "Rain"        "Weak"         "Yes"
+1        "Rain"      "Strong"          "No"

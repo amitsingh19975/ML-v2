@@ -59,8 +59,7 @@ namespace amt::classification{
         {}
 
         auto operator()(arma::Mat<double>& beta, arma::Mat<double> const& x, arma::Mat<double> const& y) const {
-            beta.resize(x.n_cols, 1ul);
-            beta.randu();
+            beta = arma::zeros(x.n_cols, 1ul);
             eval(beta,x,y);
         }
 

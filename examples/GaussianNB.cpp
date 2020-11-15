@@ -112,7 +112,7 @@ int main(){
     auto filename = "/Users/amit/Desktop/code/ML/ML-v2/dataset/Iris.csv";
     auto temp = amt::read_csv(filename, true);
 
-    amt::shuffle(temp,static_cast<unsigned>(std::time(0)));
+    amt::shuffle(temp, amt::tag::inplace, static_cast<unsigned>(std::time(0)));
     // amt::shuffle(temp);
 
     auto [X,Y] = preprocess(temp);
